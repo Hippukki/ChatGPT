@@ -1,12 +1,10 @@
-﻿using System;
-using System.IO;
-using ChatGPT;
+﻿using ChatGPT;
 using ChatGPT.Bot;
 using ChatGPT.Providers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Http;
+using NLog.Web;
 
 var configuration = new ConfigurationBuilder()
     .AddJsonFile($"appsettings.json", true, true)
@@ -19,7 +17,9 @@ var host = Host.CreateDefaultBuilder(args)
             services.AddHostedService<Worker>();
             services.AddTransient(typeof(ChatGPTbot));
             services.AddSingleton(configuration);
+            services.AddTransient<ILoggerProvider, LoggerProvider>();
             services.AddScoped<IChatGptProvider, ChatGptProvider>();
-        }).Build();
+        }).ConfigureLogging(logBuilder => { logBuilder.AddNLog("NLog.config"); })
+        .Build();
 await host.RunAsync();
 

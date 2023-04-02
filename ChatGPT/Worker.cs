@@ -1,11 +1,6 @@
 ﻿using ChatGPT.Bot;
+using ChatGPT.Providers;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ChatGPT
 {
@@ -14,7 +9,7 @@ namespace ChatGPT
     /// </summary>
     public class Worker : BackgroundService
     {
-        private readonly ILogger<Worker> _logger;
+        private readonly ILoggerProvider _logger;
         private readonly ChatGPTbot _chatGPTbot;
 
         /// <summary>
@@ -23,7 +18,7 @@ namespace ChatGPT
         /// <param name="logger"></param>
         /// <param name="expeditorBot"></param>
         /// <param name="httpClientProvider"></param>
-        public Worker(ILogger<Worker> logger, ChatGPTbot chatGPTbot)
+        public Worker(ILoggerProvider logger, ChatGPTbot chatGPTbot)
         {
             _logger = logger;
             _chatGPTbot = chatGPTbot;
@@ -61,6 +56,10 @@ namespace ChatGPT
             _chatGPTbot.StopBot();
         }
 
+        /// <summary>
+        /// Фоновый процесс
+        /// </summary>
+        /// <returns></returns>
         private async Task DoWorkAsyncInfiniteLoop()
         {
             const int pause = 60000;
