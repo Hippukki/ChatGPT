@@ -1,25 +1,21 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Telegram.Bot;
+﻿using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using ChatGPT.Providers;
 using ChatGPT.Models;
+using Telegram.Bot.Exceptions;
 
 namespace ChatGPT.Bot
 {
-
+    /// <summary>
+    /// Бот
+    /// </summary>
     public class ChatGPTbot
     {
         private ITelegramBotClient? _bot;
         private CancellationTokenSource? _cancellationToken;
         private static IChatGptProvider _chatGptProvider;
-        private readonly ILogger<ChatGPTbot> _logger;
+        private static ILoggerProvider _logger;
         private bool isConnected = true;
         private static List<DialogMessage> messages;
 
@@ -28,13 +24,16 @@ namespace ChatGPT.Bot
         /// </summary>
         /// <param name="logger"></param>
         /// <param name="chatGptProvider"></param>
-        public ChatGPTbot(ILogger<ChatGPTbot> logger, IChatGptProvider chatGptProvider)
+        public ChatGPTbot(IChatGptProvider chatGptProvider, ILoggerProvider logger)
         {
-            _logger = logger;
             _chatGptProvider = chatGptProvider;
             messages = new List<DialogMessage>();
+            _logger = logger;
         }
 
+        /// <summary>
+        /// Инициализация бота
+        /// </summary>
         public void InitializeBot()
         {
             try
@@ -59,9 +58,16 @@ namespace ChatGPT.Bot
             }
         }
 
+        /// <summary>
+        /// Обработка обновлений
+        /// </summary>
+        /// <param name="botClient"></param>
+        /// <param name="update"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         public static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
-            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(update));
+            _logger.LogTelegramMessage(update);
             if (update.Type == Telegram.Bot.Types.Enums.UpdateType.Message)
             {
                 var message = update.Message;
@@ -70,10 +76,10 @@ namespace ChatGPT.Bot
                     await botClient.SendTextMessageAsync(message.Chat, "Добро пожаловать! Просто напиши мне свой вопрос.");
                     return;
                 }
-                else if(message.Text.ToLower() == "/stop")
+                else if(message.Text.ToLower() == "/clear")
                 {
                     messages.Clear();
-                    await botClient.SendTextMessageAsync(message.Chat, "История сообщений очищена..");
+                    await botClient.SendTextMessageAsync(message.Chat, "Тема диалога очищена, но вы можете задать мне другой вопрос!");
                     return;
                 }
 
@@ -85,13 +91,27 @@ namespace ChatGPT.Bot
                 var gptResponseData = await _chatGptProvider.SendMessageAsync(messages);
                 messages.Add(gptResponseData);
                 await botClient.SendTextMessageAsync(message.Chat, gptResponseData.Content);
+                _logger.LogGPTMessage(gptResponseData.Content);
             }
         }
 
+        /// <summary>
+        /// Обработка ошибок
+        /// </summary>
+        /// <param name="botClient"></param>
+        /// <param name="exception"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         public static async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
         {
-            // Некоторые действия
-            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(exception));
+            if (exception is ApiRequestException)
+            {
+                _logger.LogError($"Ошибка при отправке запроса к Телеграм API. {exception.Message}");
+            }
+            else
+            {
+                _logger.LogError($"Неизвестная ошибка: {exception.Message}");
+            }
         }
 
         /// <summary>
