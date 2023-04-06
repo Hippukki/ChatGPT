@@ -73,7 +73,12 @@ namespace ChatGPT.Bot
                 var message = update.Message;
                 if (message.Text.ToLower() == "/start")
                 {
-                    await botClient.SendTextMessageAsync(message.Chat, "Добро пожаловать! Просто напиши мне свой вопрос.");
+                    await botClient.SendTextMessageAsync(message.Chat,
+                        "Добро пожаловать! Это чат-бот для общения с искусственным интеллектом, разработанным компанией OpenAI - ChatGPT v3.5! \n" +
+                        "Чат-бот абсолютно бесплатен и не ограничивается в использовании. \n" +
+                        "Исходный код бота вы можете посмотреть на моём GitHub по этой ссылке: https://github.com/Hippukki/ChatGPT \n" +
+                        "Если вы столкнётесь с какими-нибудь проблемами, либо у вас возникнут неполадки при использовании чат-бота, вы можете сообщить мне об этом письмом на почту: gregorhey812@gmail.com");
+                    await botClient.SendTextMessageAsync(message.Chat,"А теперь просто напиши мне какой-нибудь вопрос!");
                     return;
                 }
                 else if(message.Text.ToLower() == "/clear")
