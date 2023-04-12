@@ -70,33 +70,7 @@ namespace ChatGPT.Bot
             _logger.LogTelegramMessage(update);
             if (update.Type == Telegram.Bot.Types.Enums.UpdateType.Message)
             {
-                var message = update.Message;
-                if (message.Text.ToLower() == "/start")
-                {
-                    await botClient.SendTextMessageAsync(message.Chat,
-                        "Добро пожаловать! Это чат-бот для общения с искусственным интеллектом, разработанным компанией OpenAI - ChatGPT v3.5! \n" +
-                        "Чат-бот абсолютно бесплатен и не ограничивается в использовании. \n" +
-                        "Исходный код бота вы можете посмотреть на моём GitHub по этой ссылке: https://github.com/Hippukki/ChatGPT \n" +
-                        "Если вы столкнётесь с какими-нибудь проблемами, либо у вас возникнут неполадки при использовании чат-бота, вы можете сообщить мне об этом письмом на почту: gregorhey812@gmail.com");
-                    await botClient.SendTextMessageAsync(message.Chat,"А теперь просто напиши мне какой-нибудь вопрос!");
-                    return;
-                }
-                else if(message.Text.ToLower() == "/clear")
-                {
-                    messages.Clear();
-                    await botClient.SendTextMessageAsync(message.Chat, "Тема диалога очищена, но вы можете задать мне другой вопрос!");
-                    return;
-                }
-
-                messages.Add(new DialogMessage
-                {
-                    Role = "user",
-                    Content = message.Text
-                });
-                var gptResponseData = await _chatGptProvider.SendMessageAsync(messages);
-                messages.Add(gptResponseData);
-                await botClient.SendTextMessageAsync(message.Chat, gptResponseData.Content);
-                _logger.LogGPTMessage(gptResponseData.Content);
+                await SendMessage(botClient, update);
             }
         }
 
@@ -125,6 +99,43 @@ namespace ChatGPT.Bot
         public void StopBot()
         {
             _cancellationToken.Cancel();
+        }
+
+        /// <summary>
+        /// Метод обработки сообщений
+        /// </summary>
+        /// <param name="botClient"></param>
+        /// <param name="update"></param>
+        /// <returns></returns>
+        public static async Task SendMessage(ITelegramBotClient botClient, Update update)
+        {
+            var message = update.Message.Text.ToLower();
+            if (message == "/start")
+            {
+                await botClient.SendTextMessageAsync(update.Message.Chat,
+                    "Добро пожаловать! Это чат-бот для общения с искусственным интеллектом, разработанным компанией OpenAI - ChatGPT v3.5! \n" +
+                    "Чат-бот абсолютно бесплатен и не ограничивается в использовании. \n" +
+                    "Исходный код бота вы можете посмотреть на моём GitHub по этой ссылке: https://github.com/Hippukki/ChatGPT \n" +
+                    "Если вы столкнётесь с какими-нибудь проблемами, либо у вас возникнут неполадки при использовании чат-бота, вы можете сообщить мне об этом письмом на почту: gregorhey812@gmail.com");
+                await botClient.SendTextMessageAsync(update.Message.Chat, "А теперь просто напиши мне какой-нибудь вопрос!");
+                return;
+            }
+            else if (message == "/clear")
+            {
+                messages.Clear();
+                await botClient.SendTextMessageAsync(update.Message.Chat, "Тема диалога очищена, но вы можете задать мне другой вопрос!");
+                return;
+            }
+
+            messages.Add(new DialogMessage
+            {
+                Role = "user",
+                Content = message
+            });
+            var gptResponseData = await _chatGptProvider.SendMessageAsync(messages);
+            messages.Add(gptResponseData);
+            await botClient.SendTextMessageAsync(update.Message.Chat, gptResponseData.Content);
+            _logger.LogGPTMessage(gptResponseData.Content);
         }
 
         /// <summary>
