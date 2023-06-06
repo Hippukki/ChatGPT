@@ -51,6 +51,41 @@ namespace ChatGPT.Providers
             return userByUserName;
         }
 
+        public async Task AddTopicToUser(string title, Telegram.Bot.Types.Message message)
+        {
+            var user = await GetTelegramUser(message);
+
+            var firstMessage = new Message
+            {
+                Id = Guid.NewGuid(),
+                User = user,
+                Content = message.Text,
+                Role = "user",
+                SentDate = DateTime.Now
+            };
+
+            var newTopic = new Topic
+            {
+                Id = Guid.NewGuid(),
+                Title = title,
+                User = user,
+                Messages = new List<Message>
+                {
+                    firstMessage
+                },
+                IsDeleted = false
+            };
+
+            await _topicRepository.CreateTopicAsync(newTopic);
+            return;
+        }
+
+        public async Task<List<Topic>> GetUserTopics(Telegram.Bot.Types.Message message)
+        {
+            var chatId = message.Chat.Id;
+            return await _topicRepository.GetTopicsListByPredicate(t => t.User.ChatId == chatId);
+        }
+
         private async Task<TelegramUser> AddTelegramUser(Telegram.Bot.Types.Message message)
         {
             if(message.Chat.Type == ChatType.Private)

@@ -4,6 +4,7 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Exceptions;
 using ChatGPT.Models.GPT;
 using ChatGPT.Providers.Interfaces;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ChatGPT.Bot
 {
@@ -17,8 +18,8 @@ namespace ChatGPT.Bot
         private static IChatGptProvider _chatGptProvider;
         private static ILoggerProvider _logger;
         private static IUserProvider _userProvider;
-        private bool isConnected = true;
         private static List<DialogMessage> messages;
+        private bool isConnected = true;
 
         /// <summary>
         /// .ctor
@@ -28,7 +29,6 @@ namespace ChatGPT.Bot
         public ChatGPTbot(IChatGptProvider chatGptProvider, ILoggerProvider logger, IUserProvider userProvider)
         {
             _chatGptProvider = chatGptProvider;
-            messages = new List<DialogMessage>();
             _logger = logger;
             _userProvider = userProvider;
         }
@@ -45,7 +45,7 @@ namespace ChatGPT.Bot
                 var cancellationToken = _cancellationToken.Token;
                 var receiverOptions = new ReceiverOptions
                 {
-                    AllowedUpdates = { }, // receive all update types
+                    AllowedUpdates = { },
                 };
                 _bot.StartReceiving(
                     HandleUpdateAsync,
@@ -120,19 +120,57 @@ namespace ChatGPT.Bot
             }
             else if(message == "/topics")
             {
-                //await SendTopicsListAsync()
+                await SendTopicsListAsync(botClient, update);
+                return;
+            }
+            else
+            {
+                if (!messages.Any())
+                {
+                    messages.Add(new DialogMessage
+                    {
+                        Role = "user",
+                        Content = $"Придумай название темы, одним-двумя словами, для этого сообщения: {message}"
+                    });
+                    var topicTitle = await _chatGptProvider.SendMessageAsync(messages);
+
+                    await _userProvider.AddTopicToUser(topicTitle.Content, update.Message);
+                    return;
+                }
+
+                //var gptResponseData = await _chatGptProvider.SendMessageAsync(messages);
+                //messages.Add(gptResponseData);
+                //await botClient.SendTextMessageAsync(update.Message.Chat, gptResponseData.Content);
+                //_logger.LogGPTMessage(gptResponseData.Content);
+            }
+        }
+
+        private static async Task SendTopicsListAsync(ITelegramBotClient botClient, Update update)
+        {
+            var userTopics = await _userProvider.GetUserTopics(update.Message);
+            if(userTopics == null)
+            {
+                await botClient.SendTextMessageAsync(update.Message.Chat, $"Не удалось загрузить темы для {update.Message.From.Username}");
+                return;
             }
 
-            messages.Add(new DialogMessage
+            var keyBoardButtons = new List<List<InlineKeyboardButton>>();
+            for (var index = 0; index < userTopics.Count; index++)
             {
-                Role = "user",
-                Content = message
-            });
-            var gptResponseData = await _chatGptProvider.SendMessageAsync(messages);
-            messages.Add(gptResponseData);
-            await botClient.SendTextMessageAsync(update.Message.Chat, gptResponseData.Content);
-            _logger.LogGPTMessage(gptResponseData.Content);
-        }
+                var topicItem = userTopics[index];
+                var inlineButtonText = topicItem.Title;
+                var inlineButton = new InlineKeyboardButton(inlineButtonText)
+                {
+                    CallbackData = $"${topicItem.Id}"
+                };
+
+                keyBoardButtons.Last().Add(inlineButton);
+            }
+
+            var inlineKeyboard = new InlineKeyboardMarkup(keyBoardButtons);
+            await botClient.SendTextMessageAsync(update.Message.Chat, "Ваши предыдущие темы:", replyMarkup: inlineKeyboard);
+            return;
+        } 
 
         private static async Task SendStartMessageAsync(ITelegramBotClient botClient, Update update)
         {
@@ -150,6 +188,7 @@ namespace ChatGPT.Bot
                 "вы можете сообщить мне об этом письмом на почту: gregorhey812@gmail.com");
 
             await botClient.SendTextMessageAsync(user.ChatId, "А теперь просто напиши мне какой-нибудь вопрос!");
+            return;
         }
 
         /// <summary>
