@@ -1,9 +1,9 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Polling;
-using ChatGPT.Providers;
-using ChatGPT.Models;
 using Telegram.Bot.Exceptions;
+using ChatGPT.Models.GPT;
+using ChatGPT.Providers.Interfaces;
 
 namespace ChatGPT.Bot
 {
@@ -16,6 +16,7 @@ namespace ChatGPT.Bot
         private CancellationTokenSource? _cancellationToken;
         private static IChatGptProvider _chatGptProvider;
         private static ILoggerProvider _logger;
+        private static IUserProvider _userProvider;
         private bool isConnected = true;
         private static List<DialogMessage> messages;
 
@@ -24,11 +25,12 @@ namespace ChatGPT.Bot
         /// </summary>
         /// <param name="logger"></param>
         /// <param name="chatGptProvider"></param>
-        public ChatGPTbot(IChatGptProvider chatGptProvider, ILoggerProvider logger)
+        public ChatGPTbot(IChatGptProvider chatGptProvider, ILoggerProvider logger, IUserProvider userProvider)
         {
             _chatGptProvider = chatGptProvider;
             messages = new List<DialogMessage>();
             _logger = logger;
+            _userProvider = userProvider;
         }
 
         /// <summary>
@@ -38,7 +40,7 @@ namespace ChatGPT.Bot
         {
             try
             {
-                _bot = new TelegramBotClient("YOUR_API_KEY");
+                _bot = new TelegramBotClient("6126209007:AAFLcTF51hW8dnG2c7weqGJJCJY2a0DeH6c");
                 _cancellationToken = new CancellationTokenSource();
                 var cancellationToken = _cancellationToken.Token;
                 var receiverOptions = new ReceiverOptions
@@ -70,7 +72,7 @@ namespace ChatGPT.Bot
             _logger.LogTelegramMessage(update);
             if (update.Type == Telegram.Bot.Types.Enums.UpdateType.Message)
             {
-                await SendMessage(botClient, update);
+                await HandleMessage(botClient, update);
             }
         }
 
@@ -107,24 +109,18 @@ namespace ChatGPT.Bot
         /// <param name="botClient"></param>
         /// <param name="update"></param>
         /// <returns></returns>
-        public static async Task SendMessage(ITelegramBotClient botClient, Update update)
+        public static async Task HandleMessage(ITelegramBotClient botClient, Update update)
         {
             var message = update.Message.Text.ToLower();
+
             if (message == "/start")
             {
-                await botClient.SendTextMessageAsync(update.Message.Chat,
-                    "Добро пожаловать! Это чат-бот для общения с искусственным интеллектом, разработанным компанией OpenAI - ChatGPT v3.5! \n" +
-                    "Чат-бот абсолютно бесплатен и не ограничивается в использовании. \n" +
-                    "Исходный код бота вы можете посмотреть на моём GitHub по этой ссылке: https://github.com/Hippukki/ChatGPT \n" +
-                    "Если вы столкнётесь с какими-нибудь проблемами, либо у вас возникнут неполадки при использовании чат-бота, вы можете сообщить мне об этом письмом на почту: gregorhey812@gmail.com");
-                await botClient.SendTextMessageAsync(update.Message.Chat, "А теперь просто напиши мне какой-нибудь вопрос!");
+                await SendStartMessageAsync(botClient, update);
                 return;
             }
-            else if (message == "/clear")
+            else if(message == "/topics")
             {
-                messages.Clear();
-                await botClient.SendTextMessageAsync(update.Message.Chat, "Тема диалога очищена, но вы можете задать мне другой вопрос!");
-                return;
+                //await SendTopicsListAsync()
             }
 
             messages.Add(new DialogMessage
@@ -136,6 +132,24 @@ namespace ChatGPT.Bot
             messages.Add(gptResponseData);
             await botClient.SendTextMessageAsync(update.Message.Chat, gptResponseData.Content);
             _logger.LogGPTMessage(gptResponseData.Content);
+        }
+
+        private static async Task SendStartMessageAsync(ITelegramBotClient botClient, Update update)
+        {
+            var user = await _userProvider.GetTelegramUser(update.Message);
+
+            await botClient.SendTextMessageAsync(user.ChatId,
+                $"Добро пожаловать, {user.UserName}! \n" +
+                $"Это чат-бот для общения с искусственным интеллектом,\n" +
+                $"разработанным компанией OpenAI - ChatGPT v3.5!\n\n" +
+                "Чат-бот абсолютно бесплатен и не ограничивается в использовании.\n" +
+                "Исходный код бота вы можете посмотреть на моём GitHub\n" +
+                "по этой ссылке: https://github.com/Hippukki/ChatGPT\n\n" +
+                "Если вы столкнётесь с какими-нибудь проблемами,\n" +
+                "либо у вас возникнут неполадки при использовании чат-бота,\n" +
+                "вы можете сообщить мне об этом письмом на почту: gregorhey812@gmail.com");
+
+            await botClient.SendTextMessageAsync(user.ChatId, "А теперь просто напиши мне какой-нибудь вопрос!");
         }
 
         /// <summary>

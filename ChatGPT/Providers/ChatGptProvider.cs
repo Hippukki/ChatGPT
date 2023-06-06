@@ -1,4 +1,5 @@
-﻿using ChatGPT.Models;
+﻿using ChatGPT.Models.GPT;
+using ChatGPT.Providers.Interfaces;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -9,7 +10,7 @@ namespace ChatGPT.Providers
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILoggerProvider _logger;
-        private readonly string _chatGptToken = "YOUR_API_KEY";
+        private readonly string _chatGptToken = "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";
         private readonly string endpoint = "https://api.openai.com/v1/chat/completions";
 
         public ChatGptProvider(IHttpClientFactory httpClientFactory, ILoggerProvider logger)

@@ -1,6 +1,6 @@
 ﻿using Telegram.Bot.Types;
 
-namespace ChatGPT.Providers
+namespace ChatGPT.Providers.Interfaces
 {
     /// <summary>
     /// Логер

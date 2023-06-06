@@ -1,5 +1,5 @@
 ﻿using ChatGPT.Bot;
-using ChatGPT.Providers;
+using ChatGPT.Providers.Interfaces;
 using Microsoft.Extensions.Hosting;
 
 namespace ChatGPT

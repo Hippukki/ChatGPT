@@ -1,6 +1,6 @@
-﻿using ChatGPT.Models;
+﻿using ChatGPT.Models.GPT;
 
-namespace ChatGPT.Providers
+namespace ChatGPT.Providers.Interfaces
 {
     /// <summary>
     /// Провайдер взаимодействия с ChatGPT

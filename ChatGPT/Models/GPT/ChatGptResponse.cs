@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace ChatGPT.Models
+namespace ChatGPT.Models.GPT
 {
     public class ChatGptResponse
     {
