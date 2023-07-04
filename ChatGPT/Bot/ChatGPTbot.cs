@@ -40,7 +40,7 @@ namespace ChatGPT.Bot
         {
             try
             {
-                _bot = new TelegramBotClient("6126209007:AAFLcTF51hW8dnG2c7weqGJJCJY2a0DeH6c");
+                _bot = new TelegramBotClient("YOUR_API_KEY");
                 _cancellationToken = new CancellationTokenSource();
                 var cancellationToken = _cancellationToken.Token;
                 var receiverOptions = new ReceiverOptions
